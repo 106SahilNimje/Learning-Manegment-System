@@ -11,7 +11,7 @@ import CoursePlayer from './pages/CoursePlayer';
 function App() {
   return (
     <Router>
-      <div className="min-h-screen flex flex-col pt-16">
+      <div className="min-h-screen flex flex-col">
         <Navbar />
         <main className="flex-grow">
           <Routes>
