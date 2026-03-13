@@ -49,7 +49,7 @@ const CoursePlayer = () => {
     setCertificateLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:5000/api/certificates/generate/${courseId}`, {
+      const res = await fetch(`http://localhost:5000/api/v1/certificates/generate/${courseId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

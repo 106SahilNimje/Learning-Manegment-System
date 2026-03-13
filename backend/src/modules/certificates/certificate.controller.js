@@ -1,22 +1,29 @@
 const certificateService = require('./certificate.service');
+const ApiResponse = require('../../utils/ApiResponse');
 
 class CertificateController {
   async generate(req, res, next) {
     try {
       const { courseId } = req.params;
       const cert = await certificateService.generateCertificate(req.user.id, courseId);
-      res.status(201).json({ success: true, data: cert });
+      return ApiResponse.created(res, { data: cert });
     } catch (error) {
-      res.status(400).json({ success: false, message: error.message });
+      return ApiResponse.error(res, {
+        message: error.message,
+        statusCode: error.statusCode || 400,
+      });
     }
   }
 
   async getMyCertificates(req, res, next) {
     try {
       const certs = await certificateService.getMyCertificates(req.user.id);
-      res.status(200).json({ success: true, data: certs });
+      return ApiResponse.success(res, { data: certs });
     } catch (error) {
-      res.status(400).json({ success: false, message: error.message });
+      return ApiResponse.error(res, {
+        message: error.message,
+        statusCode: error.statusCode || 400,
+      });
     }
   }
 }

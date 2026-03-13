@@ -1,15 +1,32 @@
 const prisma = require('../../config/prisma');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const ApiError = require('../../utils/ApiError');
 
 class AuthService {
-  async register(data) {
+  async register(data, tenantId = null) {
     const { name, email, password, role } = data;
 
-    // Check if user exists
-    const existingUser = await prisma.user.findUnique({ where: { email } });
+    // Use tenantId from body or from middleware
+    const resolvedTenantId = data.tenantId || tenantId || null;
+
+    // Check if user exists (scoped to tenant if provided)
+    const whereClause = resolvedTenantId
+      ? { email_tenantId: { email, tenantId: resolvedTenantId } }
+      : { email_tenantId: { email, tenantId: null } };
+
+    let existingUser;
+    try {
+      existingUser = await prisma.user.findUnique({ where: whereClause });
+    } catch {
+      // If compound unique fails (e.g. null tenantId), fall back to findFirst
+      existingUser = await prisma.user.findFirst({
+        where: { email, tenantId: resolvedTenantId },
+      });
+    }
+
     if (existingUser) {
-      throw new Error('User already exists');
+      throw ApiError.conflict('User already exists with this email');
     }
 
     // Hash password
@@ -22,6 +39,7 @@ class AuthService {
         email,
         password: hashedPassword,
         role: role || 'STUDENT',
+        tenantId: resolvedTenantId,
       },
     });
 
@@ -34,16 +52,16 @@ class AuthService {
   async login(data) {
     const { email, password } = data;
 
-    // Find user
-    const user = await prisma.user.findUnique({ where: { email } });
+    // Find user by email (may match multiple tenants — take first match)
+    const user = await prisma.user.findFirst({ where: { email } });
     if (!user) {
-      throw new Error('Invalid credentials');
+      throw ApiError.unauthorized('Invalid credentials');
     }
 
     // Check password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      throw new Error('Invalid credentials');
+      throw ApiError.unauthorized('Invalid credentials');
     }
 
     // Generate token
@@ -54,7 +72,7 @@ class AuthService {
 
   generateToken(user) {
     return jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
+      { id: user.id, email: user.email, role: user.role, tenantId: user.tenantId },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );

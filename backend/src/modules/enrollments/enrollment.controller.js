@@ -1,12 +1,17 @@
 const enrollmentService = require('./enrollment.service');
+const ApiResponse = require('../../utils/ApiResponse');
+const { parsePaginationParams } = require('../../utils/pagination');
 
 class EnrollmentController {
   async getMyEnrollments(req, res, next) {
     try {
       const enrollments = await enrollmentService.getMyEnrollments(req.user.id);
-      res.status(200).json({ success: true, data: enrollments });
+      return ApiResponse.success(res, { data: enrollments });
     } catch (error) {
-      res.status(400).json({ success: false, message: error.message });
+      return ApiResponse.error(res, {
+        message: error.message,
+        statusCode: error.statusCode || 400,
+      });
     }
   }
 
@@ -14,9 +19,30 @@ class EnrollmentController {
     try {
       const { enrollmentId, lessonId } = req.body;
       const progress = await enrollmentService.markLessonCompleted(enrollmentId, lessonId);
-      res.status(200).json({ success: true, data: progress });
+      return ApiResponse.success(res, { data: progress, message: 'Lesson marked as completed' });
     } catch (error) {
-      res.status(400).json({ success: false, message: error.message });
+      return ApiResponse.error(res, {
+        message: error.message,
+        statusCode: error.statusCode || 400,
+      });
+    }
+  }
+
+  async getAllEnrollments(req, res, next) {
+    try {
+      const paginationOpts = parsePaginationParams(req.query);
+      const { enrollments, total } = await enrollmentService.getAllEnrollments(paginationOpts, req.tenantId);
+      return ApiResponse.paginated(res, {
+        data: enrollments,
+        page: paginationOpts.page,
+        limit: paginationOpts.limit,
+        total,
+      });
+    } catch (error) {
+      return ApiResponse.error(res, {
+        message: error.message,
+        statusCode: error.statusCode || 400,
+      });
     }
   }
 }

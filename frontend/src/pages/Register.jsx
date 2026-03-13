@@ -12,14 +12,14 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/register', { name, email, password });
+      const response = await axios.post('http://localhost:5000/api/v1/auth/register', { name, email, password });
       if (response.data.success) {
         alert('Registration successful! Please login.');
         navigate('/login');
       }
     } catch (error) {
       console.error('Registration error:', error);
-      alert(error.response?.data?.message || 'Registration failed');
+      alert(error.response?.data?.error?.message || error.response?.data?.message || 'Registration failed');
     }
   };
 

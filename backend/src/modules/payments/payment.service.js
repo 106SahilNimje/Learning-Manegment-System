@@ -1,67 +1,55 @@
-const Razorpay = require('razorpay');
-const crypto = require('crypto');
 const prisma = require('../../config/prisma');
+const ApiError = require('../../utils/ApiError');
+const RazorpayGateway = require('./gateways/RazorpayGateway');
 
 class PaymentService {
   constructor() {
-    this.razorpay = new Razorpay({
-      key_id: process.env.RAZORPAY_KEY_ID,
-      key_secret: process.env.RAZORPAY_KEY_SECRET,
-    });
+    // Gateway adapter — swap this to use a different provider
+    this.gateway = new RazorpayGateway();
   }
 
   async createOrder(userId, courseId) {
     const course = await prisma.course.findUnique({ where: { id: courseId } });
-    if (!course) throw new Error('Course not found');
+    if (!course) throw ApiError.notFound('Course not found');
 
-    const amount = course.price * 100; // Razorpay expects amount in paise
+    const amount = course.price * 100; // Convert to smallest currency unit (paise)
 
-    const options = {
+    const order = await this.gateway.createOrder({
       amount,
-      currency: "INR",
+      currency: 'INR',
       receipt: `receipt_order_${courseId}_${userId}`,
-    };
+    });
 
-    const order = await this.razorpay.orders.create(options);
-    
     // Create pending enrollment
     await prisma.enrollment.create({
       data: {
         userId,
         courseId,
-        razorpayOrderId: order.id,
-        paymentStatus: 'PENDING'
-      }
+        razorpayOrderId: order.orderId,
+        paymentStatus: 'PENDING',
+      },
     });
 
     return order;
   }
 
   async verifyPayment(data) {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = data;
+    const isAuthentic = await this.gateway.verifyPayment(data);
 
-    const body = razorpay_order_id + "|" + razorpay_payment_id;
-
-    const expectedSignature = crypto
-      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
-      .update(body.toString())
-      .digest("hex");
-
-    const isAuthentic = expectedSignature === razorpay_signature;
+    const orderId = data.razorpay_order_id;
 
     if (isAuthentic) {
-      // Update enrollment status
       await prisma.enrollment.updateMany({
-        where: { razorpayOrderId: razorpay_order_id },
-        data: { paymentStatus: 'SUCCESS' }
+        where: { razorpayOrderId: orderId },
+        data: { paymentStatus: 'SUCCESS' },
       });
       return true;
     } else {
       await prisma.enrollment.updateMany({
-        where: { razorpayOrderId: razorpay_order_id },
-        data: { paymentStatus: 'FAILED' }
+        where: { razorpayOrderId: orderId },
+        data: { paymentStatus: 'FAILED' },
       });
-      throw new Error("Payment verification failed");
+      throw ApiError.paymentError('Payment verification failed');
     }
   }
 }

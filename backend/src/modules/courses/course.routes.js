@@ -8,11 +8,14 @@ const upload = require('../../middlewares/upload.middleware');
 router.get('/', courseController.getAllCourses);
 router.get('/:id', courseController.getCourseById);
 
-// Instructor routes
+// Instructor / Admin routes
 router.post('/', protect, authorize('INSTRUCTOR', 'ADMIN'), courseController.createCourse);
-router.post('/:id/modules', protect, authorize('INSTRUCTOR', 'ADMIN'), courseController.addModule);
+router.put('/:id', protect, authorize('INSTRUCTOR', 'ADMIN'), courseController.updateCourse);
+router.delete('/:id', protect, authorize('INSTRUCTOR', 'ADMIN'), courseController.deleteCourse);
+router.patch('/:id/publish', protect, authorize('INSTRUCTOR', 'ADMIN'), courseController.togglePublish);
 
-// Lesson route (needs moduleId)
+// Module & Lesson management
+router.post('/:id/modules', protect, authorize('INSTRUCTOR', 'ADMIN'), courseController.addModule);
 router.post('/modules/:moduleId/lessons', protect, authorize('INSTRUCTOR', 'ADMIN'), upload.single('file'), courseController.addLesson);
 
 module.exports = router;

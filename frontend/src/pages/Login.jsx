@@ -11,16 +11,16 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/login', { email, password });
+      const response = await axios.post('http://localhost:5000/api/v1/auth/login', { email, password });
       if (response.data.success) {
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+        localStorage.setItem('token', response.data.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.data.user));
         // Force reload or redirect to update state in Navbar
         window.location.href = '/dashboard';
       }
     } catch (error) {
       console.error('Login error:', error);
-      alert(error.response?.data?.message || 'Login failed');
+      alert(error.response?.data?.error?.message || error.response?.data?.message || 'Login failed');
     }
   };
 
