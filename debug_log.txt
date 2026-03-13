@@ -1,0 +1,8 @@
+2026-03-13T09:25:51.982Z - Creating order for userId: 03739614-d38e-42b6-acdd-8044d2e43021, courseId: 1
+2026-03-13T09:25:51.987Z - Found course: Complete Web Development Bootcamp, price: 499
+2026-03-13T09:25:52.296Z - Error in createOrder: undefined
+undefined
+2026-03-13T09:26:00.559Z - Creating order for userId: 03739614-d38e-42b6-acdd-8044d2e43021, courseId: 1
+2026-03-13T09:26:00.562Z - Found course: Complete Web Development Bootcamp, price: 499
+2026-03-13T09:26:07.826Z - Error in createOrder: undefined
+undefined

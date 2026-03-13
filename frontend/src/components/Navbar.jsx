@@ -1,20 +1,49 @@
+import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { BookOpen, User, LogOut } from 'lucide-react';
+import { BookOpen, LogOut, User, CreditCard, UserCircle, Award, Settings, HelpCircle, ChevronDown } from 'lucide-react';
 
 const Navbar = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
   const isAuthenticated = !!token;
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = useRef(null);
+
+  // Get user info from localStorage
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const userName = user.name || 'Student';
+  const userEmail = user.email || 'student@lms.com';
+  const userInitial = userName.charAt(0).toUpperCase();
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (profileRef.current && !profileRef.current.contains(e.target)) {
+        setProfileOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    setProfileOpen(false);
     navigate('/login');
   };
 
+  const menuItems = [
+    { icon: UserCircle, label: 'Personal Details', path: '/profile', color: 'text-blue-500' },
+    { icon: CreditCard, label: 'Payment History', path: '/payments', color: 'text-green-500' },
+    { icon: Award, label: 'My Certificates', path: '/certificates', color: 'text-yellow-500' },
+    { icon: Settings, label: 'Settings', path: '/settings', color: 'text-gray-500' },
+    { icon: HelpCircle, label: 'Help & Support', path: '/help', color: 'text-purple-500' },
+  ];
+
   return (
     <nav className="bg-white shadow-sm sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="w-full px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             <Link to="/" className="flex items-center gap-2">
@@ -37,6 +66,65 @@ const Navbar = () => {
                   <LogOut className="h-4 w-4" />
                   Logout
                 </button>
+
+                {/* Profile Dropdown */}
+                <div className="relative" ref={profileRef}>
+                  <button
+                    onClick={() => setProfileOpen(!profileOpen)}
+                    className="flex items-center gap-2 pl-3 pr-2 py-1.5 rounded-full border-2 border-gray-200 hover:border-primary-300 hover:bg-gray-50 transition-all duration-200"
+                  >
+                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                      {userInitial}
+                    </div>
+                    <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform duration-200 ${profileOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {/* Dropdown Menu */}
+                  {profileOpen && (
+                    <div className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-[100]"
+                      style={{ animation: 'fadeInUp 0.2s ease-out' }}
+                    >
+                      {/* User Info Header */}
+                      <div className="px-4 py-3 border-b border-gray-100">
+                        <div className="flex items-center gap-3">
+                          <div className="h-11 w-11 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-bold text-lg shadow-sm">
+                            {userInitial}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-gray-900 truncate">{userName}</p>
+                            <p className="text-xs text-gray-500 truncate">{userEmail}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Menu Items */}
+                      <div className="py-1">
+                        {menuItems.map((item) => (
+                          <Link
+                            key={item.path}
+                            to={item.path}
+                            onClick={() => setProfileOpen(false)}
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                          >
+                            <item.icon className={`h-5 w-5 ${item.color}`} />
+                            <span className="font-medium">{item.label}</span>
+                          </Link>
+                        ))}
+                      </div>
+
+                      {/* Logout */}
+                      <div className="border-t border-gray-100 pt-1">
+                        <button
+                          onClick={handleLogout}
+                          className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          <LogOut className="h-5 w-5" />
+                          <span className="font-medium">Logout</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </>
             ) : (
               <>
