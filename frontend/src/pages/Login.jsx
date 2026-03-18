@@ -81,6 +81,15 @@ const Login = () => {
               Sign in
             </button>
           </div>
+          
+          <div className="mt-6 flex justify-center border-t border-gray-100 pt-6">
+            <Link 
+              to="/reseller/login" 
+              className="text-sm font-medium text-gray-500 hover:text-primary-600 flex items-center transition-colors"
+            >
+              Are you an Admin or Reseller? <span className="underline ml-1">Partner Portal Login</span> &rarr;
+            </Link>
+          </div>
         </form>
       </div>
     </div>

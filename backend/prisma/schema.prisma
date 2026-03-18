@@ -13,6 +13,8 @@ enum Role {
   STUDENT
   INSTRUCTOR
   ADMIN
+  RESELLER_ADMIN
+  PLATFORM_OWNER
 }
 
 enum CourseStatus {
@@ -21,7 +23,20 @@ enum CourseStatus {
   ARCHIVED
 }
 
-// ─── Multi-Tenancy ──────────────────────────────────────
+enum OrderStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+// ─── Multi-Tenancy (LMS Core) ───────────────────────────
 
 model Tenant {
   id        String   @id @default(uuid())
@@ -46,41 +61,45 @@ model ApiKey {
   createdAt DateTime @default(now())
 }
 
-// ─── Core Models ────────────────────────────────────────
+// ─── Core LMS Models ────────────────────────────────────
 
 model User {
-  id           String        @id @default(uuid())
-  name         String
-  email        String
-  password     String
-  role         Role          @default(STUDENT)
-  tenantId     String?
-  tenant       Tenant?       @relation(fields: [tenantId], references: [id])
-  enrollments  Enrollment[]
-  courses      Course[]      @relation("InstructorCourses")
-  certificates Certificate[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id              String             @id @default(uuid())
+  name            String
+  email           String
+  password        String
+  role            Role               @default(STUDENT)
+  tenantId        String?
+  tenant          Tenant?            @relation(fields: [tenantId], references: [id])
+  enrollments     Enrollment[]
+  courses         Course[]           @relation("InstructorCourses")
+  certificates    Certificate[]
+  // Reseller relations
+  ownedOrg        Organization?      @relation("OrgOwner")
+  resellerOrders  ResellerOrder[]
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
 
   @@unique([email, tenantId])
 }
 
 model Course {
-  id           String       @id @default(uuid())
-  title        String
-  description  String
-  price        Float
-  thumbnail    String?
-  category     String?
-  status       CourseStatus  @default(DRAFT)
-  instructorId String
-  instructor   User         @relation("InstructorCourses", fields: [instructorId], references: [id])
-  tenantId     String?
-  tenant       Tenant?      @relation(fields: [tenantId], references: [id])
-  modules      Module[]
-  enrollments  Enrollment[]
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  id              String            @id @default(uuid())
+  title           String
+  description     String
+  price           Float
+  thumbnail       String?
+  category        String?
+  status          CourseStatus       @default(DRAFT)
+  instructorId    String
+  instructor      User              @relation("InstructorCourses", fields: [instructorId], references: [id])
+  tenantId        String?
+  tenant          Tenant?           @relation(fields: [tenantId], references: [id])
+  modules         Module[]
+  enrollments     Enrollment[]
+  catalogMappings CatalogMapping[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
 }
 
 model Module {
@@ -112,6 +131,7 @@ model Enrollment {
   user            User     @relation(fields: [userId], references: [id])
   course          Course   @relation(fields: [courseId], references: [id])
   progress        Progress[]
+  resellerOrderId String?
   createdAt       DateTime @default(now())
 
   @@unique([userId, courseId])
@@ -135,4 +155,94 @@ model Certificate {
   pdfUrl    String
   user      User     @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())
+}
+
+// ─── Reseller Platform Models ───────────────────────────
+
+model Organization {
+  id                String              @id @default(uuid())
+  name              String              @unique
+  slug              String              @unique
+  ownerId           String              @unique
+  owner             User                @relation("OrgOwner", fields: [ownerId], references: [id])
+  customDomain      String?
+  logoUrl           String?
+  brandColor        String?             @default("#6366f1")
+  description       String?
+  contactEmail      String?
+  contactPhone      String?
+  gstNumber         String?
+  commissionRate    Float               @default(20.0)
+  isActive          Boolean             @default(true)
+  subscriptionStatus SubscriptionStatus @default(ACTIVE)
+  subscriptionExpiry DateTime?
+  catalogMappings   CatalogMapping[]
+  orders            ResellerOrder[]
+  walletLedger      WalletLedger[]
+  students          ResellerStudent[]
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+}
+
+model ResellerStudent {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  studentEmail   String
+  studentName    String
+  lmsUserId      String?
+  createdAt      DateTime     @default(now())
+
+  @@unique([organizationId, studentEmail])
+}
+
+model CatalogMapping {
+  id             String           @id @default(uuid())
+  organizationId String
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  courseId        String
+  course         Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  customTitle    String?
+  customPrice    Float?
+  isActive       Boolean          @default(true)
+  orders         ResellerOrder[]
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@unique([organizationId, courseId])
+}
+
+model ResellerOrder {
+  id                String       @id @default(uuid())
+  organizationId    String
+  organization      Organization @relation(fields: [organizationId], references: [id])
+  studentId         String
+  student           User         @relation(fields: [studentId], references: [id])
+  catalogMappingId  String
+  catalogMapping    CatalogMapping @relation(fields: [catalogMappingId], references: [id])
+  amountPaid        Float
+  platformFee       Float        @default(0)
+  resellerEarnings  Float        @default(0)
+  gstAmount         Float        @default(0)
+  status            OrderStatus  @default(PENDING)
+  pgTransactionId   String?
+  razorpayOrderId   String?
+  invoiceNumber     String?
+  walletEntry       WalletLedger?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+}
+
+model WalletLedger {
+  id                  String         @id @default(uuid())
+  organizationId      String
+  organization        Organization   @relation(fields: [organizationId], references: [id])
+  orderId             String         @unique
+  order               ResellerOrder  @relation(fields: [orderId], references: [id])
+  grossAmount         Float
+  platformFee         Float
+  gstAmount           Float          @default(0)
+  netResellerEarnings Float
+  description         String?
+  createdAt           DateTime       @default(now())
 }

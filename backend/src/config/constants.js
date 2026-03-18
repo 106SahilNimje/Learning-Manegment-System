@@ -27,6 +27,8 @@ const ROLES = {
   STUDENT: 'STUDENT',
   INSTRUCTOR: 'INSTRUCTOR',
   ADMIN: 'ADMIN',
+  RESELLER_ADMIN: 'RESELLER_ADMIN',
+  PLATFORM_OWNER: 'PLATFORM_OWNER',
 };
 
 // ─── Course Status ──────────────────────────────────────
@@ -36,6 +38,14 @@ const COURSE_STATUS = {
   ARCHIVED: 'ARCHIVED',
 };
 
+// ─── Order Status ───────────────────────────────────────
+const ORDER_STATUS = {
+  PENDING: 'PENDING',
+  SUCCESS: 'SUCCESS',
+  FAILED: 'FAILED',
+  REFUNDED: 'REFUNDED',
+};
+
 module.exports = {
   API_VERSION,
   API_PREFIX,
@@ -43,4 +53,6 @@ module.exports = {
   ERROR_CODES,
   ROLES,
   COURSE_STATUS,
+  ORDER_STATUS,
 };
+

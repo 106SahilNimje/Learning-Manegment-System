@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { BookOpen, LogOut, User, CreditCard, UserCircle, Award, Settings, HelpCircle, ChevronDown } from 'lucide-react';
 
 const Navbar = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const token = localStorage.getItem('token');
   const isAuthenticated = !!token;
   const [profileOpen, setProfileOpen] = useState(false);
@@ -41,13 +42,44 @@ const Navbar = () => {
     navigate('/login');
   };
 
-  const menuItems = [
-    { icon: UserCircle, label: 'Personal Details', path: '/profile', color: 'text-blue-500' },
-    { icon: CreditCard, label: 'Payment History', path: '/payments', color: 'text-green-500' },
-    { icon: Award, label: 'My Certificates', path: '/certificates', color: 'text-yellow-500' },
-    { icon: Settings, label: 'Settings', path: '/settings', color: 'text-gray-500' },
-    { icon: HelpCircle, label: 'Help & Support', path: '/help', color: 'text-purple-500' },
-  ];
+  // Set up menu items based on exact User Role
+  let menuItems = [];
+  let dashboardLink = '/dashboard';
+  let dashboardLabel = 'My Dashboard';
+
+  if (user.role === 'PLATFORM_OWNER' || user.role === 'ADMIN') {
+    dashboardLink = '/admin/resellers';
+    dashboardLabel = 'Admin Panel';
+    menuItems = [
+      { icon: UserCircle, label: 'Manage Resellers', path: '/admin/resellers', color: 'text-purple-500' },
+      { icon: Settings, label: 'Settings', path: '/settings', color: 'text-gray-500' },
+      { icon: LogOut, label: 'Logout', path: '#', action: handleLogout, color: 'text-red-500' },
+    ];
+  } else if (user.role === 'RESELLER_ADMIN') {
+    dashboardLink = '/reseller/dashboard';
+    dashboardLabel = 'Reseller Dashboard';
+    menuItems = [
+      { icon: UserCircle, label: 'My Students', path: '/reseller/students', color: 'text-blue-500' },
+      { icon: BookOpen, label: 'Manage Catalog', path: '/reseller/catalog', color: 'text-green-500' },
+      { icon: CreditCard, label: 'My Sales (Orders)', path: '/reseller/orders', color: 'text-yellow-500' },
+      { icon: Award, label: 'Wallet & Earnings', path: '/reseller/wallet', color: 'text-purple-500' },
+      { icon: Settings, label: 'Store Settings', path: '/settings', color: 'text-gray-500' },
+    ];
+  } else {
+    // Default Student Items
+    menuItems = [
+      { icon: UserCircle, label: 'Personal Details', path: '/profile', color: 'text-blue-500' },
+      { icon: CreditCard, label: 'Payment History', path: '/payments', color: 'text-green-500' },
+      { icon: Award, label: 'My Certificates', path: '/certificates', color: 'text-yellow-500' },
+      { icon: Settings, label: 'Settings', path: '/settings', color: 'text-gray-500' },
+      { icon: HelpCircle, label: 'Help & Support', path: '/help', color: 'text-purple-500' },
+    ];
+  }
+
+  // Hide navbar on reseller login page - moved after all hooks
+  if (location.pathname === '/reseller/login') {
+    return null;
+  }
 
   return (
     <nav className="bg-white shadow-sm sticky top-0 z-50">
@@ -61,14 +93,16 @@ const Navbar = () => {
           </div>
           
           <div className="flex items-center gap-4">
-            <Link to="/courses" className="text-gray-600 hover:text-primary-600 px-3 py-2 font-medium">
-              Browse Courses
-            </Link>
+            {(!user.role || user.role === 'STUDENT') && (
+              <Link to="/courses" className="text-gray-600 hover:text-primary-600 px-3 py-2 font-medium">
+                Browse Courses
+              </Link>
+            )}
             
             {isAuthenticated ? (
               <>
-                <Link to="/dashboard" className="text-gray-600 hover:text-primary-600 px-3 py-2 font-medium">
-                  My Dashboard
+                <Link to={dashboardLink} className="text-gray-600 hover:text-primary-600 px-3 py-2 font-medium">
+                  {dashboardLabel}
                 </Link>
                 <button onClick={handleLogout} className="flex items-center gap-2 text-gray-600 hover:text-red-600 px-3 py-2 font-medium">
                   <LogOut className="h-4 w-4" />
@@ -111,7 +145,10 @@ const Navbar = () => {
                           <Link
                             key={item.path}
                             to={item.path}
-                            onClick={() => setProfileOpen(false)}
+                            onClick={() => {
+                              setProfileOpen(false);
+                              if (item.action) item.action();
+                            }}
                             className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                           >
                             <item.icon className={`h-5 w-5 ${item.color}`} />

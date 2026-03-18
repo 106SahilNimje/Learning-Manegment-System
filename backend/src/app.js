@@ -42,6 +42,7 @@ const paymentRoutes = require('./modules/payments/payment.routes');
 const certificateRoutes = require('./modules/certificates/certificate.routes');
 const tenantRoutes = require('./modules/tenants/tenant.routes');
 const adminRoutes = require('./modules/admin/admin.routes');
+const resellerRoutes = require('./modules/reseller/reseller.routes');
 
 // ─── Mount Routes under /api/v1 ────────────────────────
 app.use(`${API_PREFIX}/auth`, authRoutes);
@@ -51,6 +52,7 @@ app.use(`${API_PREFIX}/payments`, paymentRoutes);
 app.use(`${API_PREFIX}/certificates`, certificateRoutes);
 app.use(`${API_PREFIX}/tenants`, tenantRoutes);
 app.use(`${API_PREFIX}/admin`, adminRoutes);
+app.use(`${API_PREFIX}/reseller`, resellerRoutes);
 
 // ─── Legacy Route Redirect ─────────────────────────────
 // Redirect old /api/* routes to /api/v1/* for backward compatibility

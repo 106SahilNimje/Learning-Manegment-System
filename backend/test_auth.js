@@ -1,35 +1,19 @@
-const http = require('http');
+const prisma = require('./src/config/prisma');
+const bcrypt = require('bcryptjs');
 
-const data = JSON.stringify({
-  name: "Test User",
-  email: "test" + Date.now() + "@example.com",
-  password: "password123",
-  role: "STUDENT"
-});
-
-const options = {
-  hostname: 'localhost',
-  port: 5000,
-  path: '/api/auth/register',
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Content-Length': data.length
+async function test() {
+  const email = 'reseller@lms.com';
+  const user = await prisma.user.findFirst({ where: { email } });
+  
+  if (!user) {
+    console.log("User not found!");
+    return;
   }
-};
+  
+  console.log("User found:", user.email, user.role);
+  
+  const isMatch = await bcrypt.compare('password123', user.password);
+  console.log("Password match for 'password123':", isMatch);
+}
 
-const req = http.request(options, res => {
-  let responseBody = '';
-  res.on('data', chunk => responseBody += chunk);
-  res.on('end', () => {
-    console.log('Status Code:', res.statusCode);
-    console.log('Response Body:', responseBody);
-  });
-});
-
-req.on('error', error => {
-  console.error('Error:', error);
-});
-
-req.write(data);
-req.end();
+test().finally(() => prisma.$disconnect());

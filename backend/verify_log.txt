@@ -1,0 +1,4 @@
+SUCCESS
+[dotenv@17.3.1] injecting env (8) from .env -- tip: 🛡️ auth for agents: https://vestauth.com
+Database connected successfully
+Server is running on port 5000
